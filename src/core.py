@@ -54,27 +54,42 @@ class RepositoryAnalyzer:
         return file_tree
 
     @staticmethod
-    def _generate_tree_view(tree: Dict, prefix: str = "") -> str:
-        """Генерация строкового представления дерева файлов.
+    def _generate_tree_view(tree: Dict, prefix: str = "", is_root: bool = True) -> str:
+        """Генерация строкового представления дерева файлов с использованием ASCII-графики.
 
         Args:
             tree: Древовидная структура файлов.
             prefix: Префикс для отступов (используется рекурсивно).
+            is_root: Является ли текущий элемент корневым.
 
         Returns:
             Строковое представление дерева.
         """
         lines = []
-        for name, children in tree.items():
-            if children:  # Это директория
-                lines.append(f"{prefix}📁 {name}/")
+        items = list(tree.items())
+        for i, (name, children) in enumerate(items):
+            is_current_last = i == len(items) - 1
+
+            if is_root:
+                # Для корневой директории не используем соединительные линии
+                connector = ""
+                icon = "📁 " if children else "📄 "
+                lines.append(f"{prefix}{icon}{name}{'/' if children else ''}")
+            else:
+                # Для всех остальных уровней используем стандартное оформление
+                connector = "└── " if is_current_last else "├── "
+                icon = "📁 " if children else "📄 "
+                lines.append(
+                    f"{prefix}{connector}{icon}{name}{'/' if children else ''}"
+                )
+
+            if children:
+                new_prefix = prefix + ("" if is_root or is_current_last else "│   ")
                 lines.extend(
                     RepositoryAnalyzer._generate_tree_view(
-                        children, prefix + "    "
+                        children, new_prefix, is_root=False
                     ).splitlines()
                 )
-            else:  # Это файл
-                lines.append(f"{prefix}📄 {name}")
         return "\n".join(lines)
 
     @staticmethod
