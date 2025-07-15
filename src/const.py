@@ -1,0 +1,21 @@
+SUPPORTED_EXTENSIONS = (
+    ".py",
+    ".js",
+    ".c",
+    ".cpp",
+    ".h",
+    ".html",
+    ".css",
+    ".php",
+    ".rb",
+    ".rs",
+    ".ts",
+    ".sh",
+    ".md",
+    ".txt",
+    ".yml",
+    ".yaml",
+    ".json",
+    ".xml",
+    ".toml"
+)
