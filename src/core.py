@@ -13,7 +13,7 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
-class RepositoryAnalyzer:
+class ZipRepositoryAnalyzer:
     """Класс для анализа репозитория из ZIP-архива."""
 
     def __init__(self, zip_path: str):
@@ -54,8 +54,10 @@ class RepositoryAnalyzer:
         return file_tree
 
     @staticmethod
-    def _generate_tree_view(tree: Dict, prefix: str = "", is_root: bool = True) -> str:
-        """Генерация строкового представления дерева файлов с использованием ASCII-графики.
+    def _generate_console_tree_view(
+        tree: Dict, prefix: str = "", is_root: bool = True
+    ) -> str:
+        """Генерация строкового представления дерева файлов с ASCII-графикой для консоли.
 
         Args:
             tree: Древовидная структура файлов.
@@ -63,7 +65,7 @@ class RepositoryAnalyzer:
             is_root: Является ли текущий элемент корневым.
 
         Returns:
-            Строковое представление дерева.
+            Строковое представление дерева с соединительными линиями.
         """
         lines = []
         items = list(tree.items())
@@ -86,11 +88,33 @@ class RepositoryAnalyzer:
             if children:
                 new_prefix = prefix + ("" if is_root or is_current_last else "│   ")
                 lines.extend(
-                    RepositoryAnalyzer._generate_tree_view(
+                    ZipRepositoryAnalyzer._generate_console_tree_view(
                         children, new_prefix, is_root=False
                     ).splitlines()
                 )
         return "\n".join(lines)
+
+    @staticmethod
+    def _generate_json_tree_view(tree: Dict, indent: int = 4, level: int = 0) -> Dict:
+        """Генерация древовидной структуры для JSON с правильными отступами.
+
+        Args:
+            tree: Древовидная структура файлов.
+            indent: Количество пробелов для отступа.
+            level: Текущий уровень вложенности.
+
+        Returns:
+            Словарь с древовидной структурой для JSON.
+        """
+        result = {}
+        for name, children in tree.items():
+            if children:
+                result[f"{name}/"] = ZipRepositoryAnalyzer._generate_json_tree_view(
+                    children, indent, level + 1
+                )
+            else:
+                result[name] = name.split(".")[-1] if len(name.split(".")) > 1 else None
+        return result
 
     @staticmethod
     def _extract_file_contents(zip_ref: zipfile.ZipFile) -> Dict[str, str]:
@@ -130,7 +154,7 @@ class RepositoryAnalyzer:
 
         Returns:
             Словарь с результатами анализа:
-            - structure: строковое представление структуры файлов
+            - json_structure: структура файлов для JSON
             - contents: содержимое поддерживаемых файлов
 
         Raises:
@@ -141,12 +165,17 @@ class RepositoryAnalyzer:
             with zipfile.ZipFile(self.zip_path, "r") as zip_ref:
                 # Построение дерева структуры
                 file_tree = self._build_file_tree(zip_ref.namelist())
-                tree_view = self._generate_tree_view(file_tree)
+                console_view = self._generate_console_tree_view(file_tree)
+                json_view = self._generate_json_tree_view(file_tree)
 
                 # Извлечение содержимого файлов
                 file_contents = self._extract_file_contents(zip_ref)
 
-                return {"structure": tree_view, "contents": file_contents}
+                return {
+                    "structure_console": console_view,
+                    "structure": json_view,
+                    "contents": file_contents,
+                }
         except zipfile.BadZipFile:
             logger.exception("Invalid ZIP file")
             raise

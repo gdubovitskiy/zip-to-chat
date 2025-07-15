@@ -4,7 +4,7 @@ from pathlib import Path
 
 import typer
 
-from src.core import RepositoryAnalyzer
+from src.core import ZipRepositoryAnalyzer
 from src.logger import configure_logging
 
 configure_logging()
@@ -26,14 +26,16 @@ def main(zip_path: Path = typer.Argument(..., exists=True, help="Path to ZIP arc
 
     try:
         typer.secho(f"🔍 Analyzing archive: {zip_path}", fg=typer.colors.BLUE)
-        result = RepositoryAnalyzer(str(zip_path)).analyze()
-
-        with open(output, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
+        result = ZipRepositoryAnalyzer(str(zip_path)).analyze()
 
         typer.secho(f"✅ Results saved to: {output}", fg=typer.colors.GREEN)
-        typer.echo(f"\nRepository structure:\n{result['structure']}")
+        typer.echo(f"\nRepository structure:\n{result['structure_console']}")
         typer.echo(f"\n📊 Analyzed files: {len(result['contents'])}")
+
+        del result['structure_console']
+
+        with open(output, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=4, ensure_ascii=False)
 
     except Exception as e:
         logger.error(f"Error: {str(e)}")
